@@ -2,6 +2,7 @@ package dbcon;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -149,62 +150,105 @@ public class ConDB {
     
     
     
-    public void createOfficersTable() {
-        String sql = "CREATE TABLE officers (" +
+    public void createParcelStatusTable1() {
+        String sql = "CREATE TABLE Parcel_Status (" +
                      "id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, " +
-                     "username VARCHAR(50) NOT NULL UNIQUE, " +
-                     "password VARCHAR(255) NOT NULL)";  // Increased length for hashed passwords
+                     "booking_id INT UNIQUE, " +
+                     "\"status\" VARCHAR(50) DEFAULT 'Delivered', " +  // Use double quotes to enforce case
+                     "FOREIGN KEY (booking_id) REFERENCES Parcel_Booking(booking_id) ON DELETE CASCADE)";
 
         try (Connection con = getCon(); Statement stmt = con.createStatement()) {
-            stmt.executeUpdate(sql);
-            System.out.println("Table officers created successfully!");
-            
-            // Insert admin credentials
-            String insertSql = "INSERT INTO officers (username, password) VALUES ('admin', 'admin')";
-            stmt.executeUpdate(insertSql);
-            System.out.println("Admin user added successfully!");
-        } catch (SQLException | ClassNotFoundException e) {
-            // If table already exists, ignore error
-            if (e.getMessage().contains("already exists")) {
-                System.out.println("Table already exists.");
+            if (tableExists(con, "PARCEL_STATUS")) {
+                System.out.println("Table Parcel_Status already exists.");
             } else {
-                e.printStackTrace();
+                stmt.executeUpdate(sql);
+                System.out.println("Table Parcel_Status created successfully!");
             }
+
+            // Insert default status for existing bookings
+            String insertSql = "INSERT INTO Parcel_Status (booking_id, \"status\") " +
+                               "SELECT booking_id, 'Delivered' FROM Parcel_Booking";
+            stmt.executeUpdate(insertSql);
+            System.out.println("Default status inserted for existing bookings!");
+
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
         }
     }
 
     
-    public void createParcelStatusTable2() {
+    public void createParcelStatusTable() {
         String sql = "CREATE TABLE Parcel_Status (" +
                      "id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, " +
                      "booking_id INT UNIQUE, " +
-                     "status VARCHAR(50) DEFAULT 'Delivered', " +
+                     "\"status\" VARCHAR(50) DEFAULT 'Delivered', " +  // Use double quotes for status
                      "FOREIGN KEY (booking_id) REFERENCES Parcel_Booking(booking_id) ON DELETE CASCADE)";
 
         try (Connection con = getCon(); Statement stmt = con.createStatement()) {
-            stmt.executeUpdate(sql);
-            System.out.println("Table Parcel_Status created successfully!");
-            
+            // Check if the table already exists
+            if (tableExists(con, "PARCEL_STATUS")) {
+                System.out.println("Table Parcel_Status already exists.");
+            } else {
+                stmt.executeUpdate(sql);
+                System.out.println("Table Parcel_Status created successfully!");
+            }
+
             // Insert default status for existing bookings
-            String insertSql = "INSERT INTO Parcel_Status (booking_id, status) " +
+            String insertSql = "INSERT INTO Parcel_Status (booking_id, \"status\") " +
                                "SELECT booking_id, 'Delivered' FROM Parcel_Booking";
             stmt.executeUpdate(insertSql);
             System.out.println("Default status inserted for existing bookings!");
+
         } catch (SQLException | ClassNotFoundException e) {
-            // If table already exists, ignore error
-            if (e.getMessage().contains("already exists")) {
-                System.out.println("Table already exists.");
-            } else {
-                e.printStackTrace();
-            }
+            e.printStackTrace();
         }
     }
+    
+    private boolean tableExists(Connection con, String tableName) throws SQLException {
+        boolean exists = false;
+        try (ResultSet rs = con.getMetaData().getTables(null, null, tableName, null)) {
+            exists = rs.next();
+        }
+        return exists;
+    }
+
+
+    public void recreateParcelStatusTable() {
+        try (Connection con = getCon(); Statement stmt = con.createStatement()) {
+            // Drop the table if it exists
+            String dropSql = "DROP TABLE Parcel_Status";
+            try {
+                stmt.executeUpdate(dropSql);
+                System.out.println("Table Parcel_Status deleted successfully!");
+            } catch (SQLException e) {
+                if (e.getSQLState().equals("42Y55")) {  // Table not found in Derby
+                    System.out.println("Table Parcel_Status does not exist, skipping drop.");
+                } else {
+                    throw e;
+                }
+            }
+
+            // Create the table with updates
+            String createSql = "CREATE TABLE Parcel_Status (" +
+                               "id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, " +
+                               "booking_id INT UNIQUE, " +
+                               "\"status\" VARCHAR(50) DEFAULT 'Delivered', " + 
+                               "FOREIGN KEY (booking_id) REFERENCES Parcel_Booking(booking_id) ON DELETE CASCADE)";
+
+            stmt.executeUpdate(createSql);
+            System.out.println("Table Parcel_Status created successfully!");
+
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
     
 
 
     public static void main(String[] args) throws ClassNotFoundException, SQLException {
         ConDB db = new ConDB();
-        db.createParcelStatusTable2(); // Call the method to create the table
+        db.recreateParcelStatusTable(); // Call the method to create the table
 //        Connection con=db.getCon();
 //        if(con!=null) {
 //        	System.out.println("Connected");

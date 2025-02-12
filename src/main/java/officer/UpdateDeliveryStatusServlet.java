@@ -35,13 +35,13 @@ public class UpdateDeliveryStatusServlet extends HttpServlet {
 
             if ("search".equals(action)) {
                 // Fetch status from Parcel_Status table
-                String sql = "SELECT status FROM Parcel_Status WHERE booking_id = ?";
+                String sql = "SELECT \"status\" FROM Parcel_Status WHERE booking_id = ?";
                 PreparedStatement pstmt = con.prepareStatement(sql);
                 pstmt.setInt(1, Integer.parseInt(bookingId));
                 ResultSet rs = pstmt.executeQuery();
-                
+
                 if (rs.next()) {
-                    out.write(rs.getString("status"));
+                    out.write(rs.getString("status")); // Use "status" instead of STATUS
                 } else {
                     out.write("Not Found");
                 }
@@ -52,17 +52,17 @@ public class UpdateDeliveryStatusServlet extends HttpServlet {
                     return;
                 }
 
-                // Update status in Parcel_Status table
-                String sql = "UPDATE Parcel_Status SET status = ? WHERE booking_id = ?";
+                // Update the status in Parcel_Status table
+                String sql = "UPDATE Parcel_Status SET \"status\" = ? WHERE booking_id = ?";
                 PreparedStatement pstmt = con.prepareStatement(sql);
                 pstmt.setString(1, newStatus);
                 pstmt.setInt(2, Integer.parseInt(bookingId));
-                int rowsUpdated = pstmt.executeUpdate();
 
-                if (rowsUpdated > 0) {
-                    out.write("Success");
+                int affectedRows = pstmt.executeUpdate();
+                if (affectedRows > 0) {
+                    out.write("Status Updated Successfully");
                 } else {
-                    out.write("Failed");
+                    out.write("Failed to Update Status");
                 }
             }
 
