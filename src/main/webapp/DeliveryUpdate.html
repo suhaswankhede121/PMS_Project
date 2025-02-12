@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Delivery Status</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            max-width: 400px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            background-color: green;
+            color: white;
+            width: 100%;
+        }
+        button:hover {
+            background-color: darkblue;
+        }
+        .error {
+            color: red;
+            display: none;
+        }
+        .confirmation {
+            color: green;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Update Delivery Status</h2>
+        
+        <label for="booking-id">Enter Booking ID (4-digit):</label>
+        <input type="text" id="booking-id" maxlength="4" placeholder="Enter 4-digit Booking ID">
+        <button onclick="searchBooking()">Search</button>
+
+        <div class="error" id="error-message">Invalid Booking ID! Must be a 4-digit number.</div>
+
+        <div id="update-form" style="display: none;">
+            <label for="current-status">Current Status:</label>
+            <input type="text" id="current-status" readonly>
+
+            <label for="new-status">Update Status:</label>
+            <select id="new-status">
+                <option value="Picked Up">Picked Up</option>
+                <option value="In Transit">In Transit</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Returned">Returned</option>
+            </select>
+
+            <button onclick="updateStatus()">Update Status</button>
+        </div>
+
+        <div class="confirmation" id="confirmation-message">Delivery status updated successfully!</div>
+    </div>
+
+    <script>
+        function searchBooking() {
+            let bookingId = document.getElementById("booking-id").value.trim();
+            let errorMessage = document.getElementById("error-message");
+            let updateForm = document.getElementById("update-form");
+            let currentStatus = document.getElementById("current-status");
+
+            if (bookingId.length !== 4 || isNaN(bookingId)) {
+                errorMessage.style.display = "block";
+                updateForm.style.display = "none";
+                return;
+            }
+
+            errorMessage.style.display = "none";
+
+            fetch('UpdateDeliveryStatusServlet', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'action=search&bookingId=' + bookingId
+            })
+            .then(response => response.text())
+            .then(status => {
+                if (status === "Not Found") {
+                    errorMessage.innerText = "Booking ID not found!";
+                    errorMessage.style.display = "block";
+                    updateForm.style.display = "none";
+                } else {
+                    currentStatus.value = status;
+                    updateForm.style.display = "block";
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function updateStatus() {
+            let bookingId = document.getElementById("booking-id").value.trim();
+            let newStatus = document.getElementById("new-status").value;
+            let confirmationMessage = document.getElementById("confirmation-message");
+
+            fetch('UpdateDeliveryStatusServlet', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'action=update&bookingId=' + bookingId + '&newStatus=' + newStatus
+            })
+            .then(response => response.text())
+            .then(response => {
+                if (response === "Success") {
+                    confirmationMessage.style.display = "block";
+                } else {
+                    alert("Failed to update status. Please try again.");
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>

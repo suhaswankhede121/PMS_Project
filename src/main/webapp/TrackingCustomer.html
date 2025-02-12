@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Your Parcel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            max-width: 400px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        button {
+            background-color: green;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: darkgreen;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            display: none;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Track Your Parcel</h2>
+        <label for="booking-id">Enter Booking ID:</label>
+        <input type="text" id="booking-id" maxlength="4" placeholder="Enter 4-digit Booking ID">
+        <button onclick="trackParcel()">Search</button>
+        <div class="error" id="error-message">Invalid Booking ID!</div>
+        <div class="status" id="tracking-status"></div>
+    </div>
+
+    <script>
+        function trackParcel() {
+            let bookingId = document.getElementById("booking-id").value.trim();
+            let trackingStatus = document.getElementById("tracking-status");
+            let errorMessage = document.getElementById("error-message");
+
+            if (bookingId.length !== 4 || isNaN(bookingId)) {
+                errorMessage.style.display = "block";
+                trackingStatus.style.display = "none";
+                return;
+            }
+
+            errorMessage.style.display = "none";
+
+            fetch("UpdateDeliveryStatusServlet", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `action=search&bookingId=${bookingId}`
+            })
+            .then(response => response.text())
+            .then(data => {
+                if (data === "Not Found") {
+                    trackingStatus.innerText = `Booking ID: ${bookingId} - Status: Not Found`;
+                    trackingStatus.style.color = "red";
+                } else {
+                    trackingStatus.innerText = `Booking ID: ${bookingId} - Status: ${data}`;
+                    trackingStatus.style.color = "green";
+                }
+                trackingStatus.style.display = "block";
+            })
+            .catch(error => {
+                trackingStatus.innerText = "Error fetching status!";
+                trackingStatus.style.color = "red";
+                trackingStatus.style.display = "block";
+            });
+        }
+    </script>
+</body>
+</html>
